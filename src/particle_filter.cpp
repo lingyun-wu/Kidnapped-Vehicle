@@ -24,6 +24,8 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
+    
+    // Random number distribution setup
     double std_x = std[0];
     double std_y = std[1];
     double std_theta = std[2];
@@ -31,13 +33,15 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     normal_distribution<double> dist_y(y, std_y);
     normal_distribution<double> dist_theta(theta, std_theta);
 
-    int m = 100;
+    int m = 100;                // number of particles
     num_particles = m;
-    is_initialized = true;
+    is_initialized = true;      // initialized
 
+    // reset particle and weight arrays
     particles.resize(m);
     weights.resize(m, 1.0);
 
+    // Initialize all particles' positions and weights
     for (int i = 0; i < m; ++i) {
         particles[i].x = dist_x(gen);
         particles[i].y = dist_y(gen);
@@ -53,6 +57,8 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
+    
+    // Random number distribution
     double std_x = std_pos[0];
     double std_y = std_pos[1];
     double std_theta = std_pos[2];
@@ -61,17 +67,18 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     normal_distribution<double> dist_theta(0, std_theta);
 
     for (int i = 0; i < num_particles; ++i) {
-        double theta = particles[i].theta;
+        double theta = particles[i].theta;       // particle's current theta
 
-        if (abs(yaw_rate) < 0.00001) {
+        if (abs(yaw_rate) < 0.00001) {           // when yaw rate is very small, take it as straight moving
             particles[i].x += velocity * delta_t * cos(theta);
             particles[i].y += velocity * delta_t * sin(theta);
-        } else {
+        } else {                                 // moving model
             particles[i].x += velocity / yaw_rate * (sin(theta+yaw_rate*delta_t) - sin(theta));
             particles[i].y += velocity / yaw_rate * (cos(theta) - cos(theta+yaw_rate*delta_t));
             particles[i].theta += yaw_rate * delta_t;
         }
 
+        // add noise
         particles[i].x += dist_x(gen);
         particles[i].y += dist_y(gen);
         particles[i].theta += dist_theta(gen);
@@ -204,11 +211,11 @@ void ParticleFilter::resample() {
     uniform_real_distribution<double> dist1(0.0, max_w);
     uniform_int_distribution<int> dist2(0, num_particles-1);
 
-    int index = dist2(gen);
 
-    double beta = 0.0;
-
-    vector<Particle> resample_particles(num_particles);
+    int index = dist2(gen);                                 // initial index
+    double beta = 0.0;                                      // initial variable of random number
+    vector<Particle> resample_particles(num_particles);     // new particles from resampling
+    // resampling 
     for (int i = 0; i < num_particles; ++i) {
         beta += dist1(gen) * 2;
         while (beta > weights[index]) {
@@ -219,6 +226,7 @@ void ParticleFilter::resample() {
         resample_particles[i] = particles[index];
     }
 
+    // assign the new particles array
     particles = resample_particles;
 }
 
